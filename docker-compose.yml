@@ -1,0 +1,27 @@
+version: '2'
+services:
+  db:
+    image: postgres:9.5
+    environment:
+      - POSTGRES_DB=awsapp
+      - POSTGRES_PASSWORD=awsapp
+      - POSTGRES_USER=awsapp
+    ports:
+      - 5470:5432
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    volumes:
+      - ./:/usr/src/app
+    links:
+      - db
+    ports:
+      - 8093:80
+    environment:
+      - DJANGO_SETTINGS_MODULE=configuration.settings.docker-settings
+      - VIRTUAL_HOST=http://*/*
+      - C_FORCE_ROOT=true

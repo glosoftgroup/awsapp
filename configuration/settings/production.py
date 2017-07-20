@@ -2,7 +2,7 @@
 from base import *
 
 RAVEN_CONFIG = {
-    'dsn': 'https://77186e27797d4110a5634c1ead79b409:e0385adc238b457990fe7b5ceb1398d2@sentry.io/111003',
+    'dsn': 'https://77186e27797d4110a5634c1ead79b409:e0385adc238b457990fe7b5ceb1398d2@sentry.io/111003',  # noqa
 
     # If you are using git, you can also automatically configure the
     # release based on the git info.

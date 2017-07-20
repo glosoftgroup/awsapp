@@ -15,7 +15,7 @@ DATABASES = {
         'NAME': 'awsapp',
         'HOST': '127.0.0.1',
         'USER': 'awsapp',
-        'PASSWORD': '',
+        'PASSWORD': 'awsapp',
         'PORT': '5432'
     }
 }

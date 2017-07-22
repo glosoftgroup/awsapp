@@ -1,0 +1,60 @@
+---
+- name: (Debian)Update package cache if last run was more than 6 hours ago
+  apt: update_cache=yes cache_valid_time={{ 60 * 60 * 6 }}
+  when: ansible_os_family == "Debian"
+
+- name: (Redhat)Update package cache if last run was more than 6 hours ago
+  become: yes
+  command: yum update -y
+  when: ansible_os_family == "RedHat"
+
+- name: Install system packages
+  apt: pkg={{ item }} state=present
+  with_items:
+    - git
+    - gcc
+    - ntp
+    - screen
+    - lynx-cur
+    - wget
+    - make
+    - ruby1.9.3
+    - tcpdump
+    - rsyslog
+  ignore_errors: yes
+
+- name: Start ntp service
+  service: name=ntp enabled=yes state=started
+  when: ansible_os_family == "Debian"
+
+- name: Install SSH keys for authorized users
+  authorized_key:
+    user: "{{ ansible_ssh_user }}"
+    key: "{{ lookup('file', '{{item}}') }}"
+  with_fileglob:
+    - ./public_keys/*.pub
+  tags:
+    - add_key
+
+- name: create MTN CA certificate directory
+  file: path=/usr/local/share/ca-certificates/mtn-CA state=directory
+
+- name: add MTN CA ssl certificate
+  copy: src=CA_certificates/{{item}}
+            dest=/usr/local/share/ca-certificates/mtn-CA/{{item}}
+  with_items:
+    - mtn_ug_CA_ssl_certificate.crt
+    - mtn_gh_CA_ssl_certificate.crt
+  notify:
+    - update-ca-certificates
+    - update-ca-certificates(Redhat)
+
+- name: create ssl client certificate directory
+  file: path=/usr/local/share/SSL_client_certificates state=directory
+
+- name: add MTN-gh-consumer ssl client certificates
+  copy: src=SSL_client_certificates/mtn_gh_consumer_client_cert_and_key/{{item}}
+            dest=/usr/local/share/SSL_client_certificates/{{item}}
+  with_items:
+    - mtn_gh_consumer_ssl_client_cert.crt
+    - mtn_gh_consumer_ssl_client_key.key

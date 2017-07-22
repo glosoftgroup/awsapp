@@ -1,0 +1,13 @@
+---
+# handlers file for common
+- name: update-ca-certificates
+  shell: update-ca-certificates
+  args:
+    executable: /bin/bash
+  when: ansible_os_family == "Debian"
+
+- name: update-ca-certificates(Redhat)
+  shell: update-ca-trust extract
+  args:
+    executable: /bin/bash
+  when: ansible_os_family == "RedHat"

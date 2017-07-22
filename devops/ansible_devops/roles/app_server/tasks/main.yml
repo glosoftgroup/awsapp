@@ -1,0 +1,117 @@
+---
+# tasks file for app_server
+
+- name: Install system packages
+  apt: pkg={{ item }} state=present
+  with_items:
+    - default-jre
+    - libjpeg-dev
+    - libfreetype6-dev
+    - zlib1g-dev
+    - libxslt1-dev
+    - build-essential
+    - python-dev
+    - python-boto
+    - python-pip
+    - authbind
+    - supervisor
+    - postfix
+    - mercurial
+    - rabbitmq-server
+
+- name: Ensure pip is up-to-date
+  command: pip install --upgrade pip
+
+- name: Install Python packages
+  pip: name={{ item }}
+  with_items:
+    - virtualenv
+    - virtualenvwrapper
+
+- name: Configure virtualenvwrapper
+  lineinfile: line="{{ item }}" dest="{{ APP_HOME }}/.bashrc"
+              backup=yes
+  with_items:
+    - export WORKON_HOME=$HOME/.virtualenvs
+    - source /usr/local/bin/virtualenvwrapper.sh
+    - workon {{APP_NAME}}
+
+
+- name: Build dependencies for Python Postgres adapter
+  become: yes
+  apt: name="{{item}}" state=latest
+  with_items:
+    - python-psycopg2
+
+- name: Allow app to bind to port 80
+  file: path=/etc/authbind/byport/80 state=touch
+        owner={{ APP_USER }} group={{ APP_USER }} mode=755
+
+- name: Write supervisord.conf
+  template: dest=/etc/supervisor/supervisord.conf
+            src=supervisord.conf.j2
+            backup=yes
+
+- name: Set supervisor to run on boot
+  service: name=supervisor enabled=yes
+
+- name: Link to app-specific supervisor configuration
+  file: >
+    src={{ APP_DIR }}/supervisord.conf
+    dest=/etc/supervisor/conf.d/{{ APP_NAME }}.conf
+    state=link force=yes
+
+- name: rm default site config
+  file: path="{{item}}" state=absent
+  with_items:
+    - /etc/nginx/sites-enabled/default
+    - /etc/nginx/sites-available/default
+  tags:
+    - nginx_conf
+
+- name: Create nginx site configuration
+  template: src=nginx.site.j2
+            dest=/etc/nginx/sites-available/{{ APP_NAME }}
+  notify:
+    - reload nginx
+  tags:
+    - nginx_conf
+
+- name: Create link to enable nginx site
+  file: path=/etc/nginx/sites-enabled/{{ APP_NAME }}
+        src=/etc/nginx/sites-available/{{ APP_NAME }}
+        state=link
+  notify:
+    - reload nginx
+  tags:
+    - nginx_conf
+
+- name: Write logrotate.conf
+  template: src=logrotate.conf.j2 dest=/etc/logrotate.d/{{ APP_NAME }}
+            backup=yes
+  tags:
+    - logrotate_conf
+
+- name: Schedule logrotate cron job
+  cron: name="rotate {{ APP_NAME }} logs" special_time=hourly
+        job="/usr/sbin/logrotate /etc/logrotate.d/{{ APP_NAME }}"
+  tags:
+    - logrotate_conf
+
+- name: cd to APP_DIR
+  lineinfile: line="cd {{APP_DIR}}" dest={{ APP_HOME }}/.bashrc backup=yes
+  when: APP_ENVIRONMENT == "development"
+
+- name: enable rabbitMQ web interface
+  command: rabbitmq-plugins enable rabbitmq_management
+  when: APP_ENVIRONMENT == "development"
+  notify:
+    - restart_rabbitmq
+
+- name: selenium deps
+  become: yes
+  apt:
+    update_cache: yes
+    pkg: phantomjs
+    state: latest
+  when: APP_ENVIRONMENT != "production"

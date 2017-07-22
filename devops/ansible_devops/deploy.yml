@@ -1,0 +1,76 @@
+---
+- hosts:
+    - app_servers
+  gather_facts: no
+  become: no
+  serial: 2
+
+  environment: "{{ APP_ENV_VARS }}"
+
+  tasks:
+    - name: Install application requirements
+      # Due to a bug in Ansible local connection mode, have to specify
+      # app user as sudo user ("sudo: no" has no effect).
+      become: yes
+      pip: >
+       requirements={{ APP_DIR }}/requirements/{{ APP_ENVIRONMENT }}.txt
+       virtualenv={{ APP_VIRTUALENV }}
+      tags:
+       - pip
+
+    - name: Check  DB
+      django_manage: >
+       app_path={{ APP_DIR }}
+       virtualenv={{ APP_VIRTUALENV }}
+       settings={{ SETTINGS_DIR }}.settings.{{ APP_ENVIRONMENT }}
+       command={{ item }}
+      with_items:
+       - check
+      run_once: yes
+
+    - name: Migrate DB
+      django_manage: >
+       app_path={{ APP_DIR }}
+       virtualenv={{ APP_VIRTUALENV }}
+       settings={{ SETTINGS_DIR }}.settings.{{ APP_ENVIRONMENT }}
+       command="migrate -v=3"
+      run_once: yes
+      register: migrate_output
+
+        - name: Echo the migrate_output
+      debug: msg="{{ migrate_output }}"
+      ignore_errors: yes
+
+    - name: Create cache table
+      django_manage: >
+       app_path={{ APP_DIR }}
+       virtualenv={{ APP_VIRTUALENV }}
+       settings={{ SETTINGS_DIR }}.settings.{{ APP_ENVIRONMENT }}
+       command={{ item }}
+       cache_table=pesa_cache
+      with_items:
+       - createcachetable
+      run_once: yes
+
+    - name: Create request cache table
+      django_manage: >
+       app_path={{ APP_DIR }}
+       virtualenv={{ APP_VIRTUALENV }}
+       settings={{ SETTINGS_DIR }}.settings.{{ APP_ENVIRONMENT }}
+       command={{ item }}
+       cache_table=request_cache
+      with_items:
+       - createcachetable
+      run_once: yes
+
+    - name: Collect static files
+      django_manage: >
+       app_path={{ APP_DIR }}
+       virtualenv={{ APP_VIRTUALENV }}
+       settings={{ SETTINGS_DIR }}.settings.{{ APP_ENVIRONMENT }}
+       command=collectstatic
+
+  post_tasks:
+    - name: Wait for webserver to come up
+      wait_for: host={{ inventory_hostname }} port={{APP_PORT}} state=started timeout=80
+      when: APP_ENVIRONMENT != "development"

@@ -1,0 +1,4 @@
+---
+# handlers file for app_server
+- name: restart_rabbitmq
+  service: name=rabbitmq-server state=restarted

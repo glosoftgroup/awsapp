@@ -1,0 +1,13 @@
+---
+APP_ENVIRONMENT: staging
+APP_VERSION: master
+APP_STATIC_DIR: "{{ APP_DIR }}/static"
+APP_PORT: 8000
+
+DB_HOST: "{{ groups['db_servers']|first }}"
+DB_NAME: "{{ APP_NAME }}"
+DB_USER: "{{ APP_NAME }}"
+DB_PASSWORD: ceGeuphoMemaihieth3v
+
+APP_ENV_VARS:
+  CELERY_BROKER_URL: "{{ BROKER }}"

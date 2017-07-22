@@ -1,0 +1,13 @@
+{{ APP_DIR }}/log/*.log {
+    {{ ROTATE_INTERVAL }}
+    rotate {{ ROTATE_COUNT }}
+    compress
+    missingok
+    notifempty
+    create 640 {{ APP_USER }} {{ APP_USER }}
+    sharedscripts
+    postrotate
+        /usr/bin/killall -USR2 supervisord 2>/dev/null || true
+    endscript
+    su {{ APP_USER }} {{ APP_USER }}
+}

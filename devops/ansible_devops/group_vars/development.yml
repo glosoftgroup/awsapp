@@ -1,0 +1,13 @@
+---
+APP_ENVIRONMENT: development
+APP_DIR: /vagrant
+APP_STATIC_DIR: "{{ APP_DIR }}/static"
+APP_VERSION: master
+
+DB_HOST: "{{ groups['db_servers']|first }}"
+DB_NAME: "{{ APP_NAME }}"
+DB_USER: "{{ APP_NAME }}"
+DB_PASSWORD: eix8Pipo5niegu2sie1i
+
+APP_ENV_VARS:
+  CELERY_BROKER_URL: "amqp://guest:guest@localhost:5672//"

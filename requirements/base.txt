@@ -13,7 +13,7 @@ django-debug-toolbar==1.8
 django-extensions==1.8.1
 django-filter==1.0.4
 django-sslify==0.2.7
-djangorestframework==3.6.3
+djangorestframework==3.9.1
 enum34==1.1.6
 idna==2.5
 ipaddress==1.0.18
